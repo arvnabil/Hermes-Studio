@@ -25,6 +25,9 @@ services:
       - studio-sessions:/app/.runtime
     ports:
       - '3000:3000'
+    networks:
+      - hermes
+      - proxy
 
   # Optional local persistence only. This is not a Hermes runtime.
   redis:
@@ -46,6 +49,9 @@ volumes:
   redis-data:
 
 networks:
-  default:
+  hermes:
     name: ${HERMES_DOCKER_NETWORK:-hermes_default}
+    external: true
+  proxy:
+    name: ${PROXY_DOCKER_NETWORK:-nginx-proxy-manager_default}
     external: true

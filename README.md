@@ -347,17 +347,19 @@ All workspace features unlock automatically — sessions persist, memory saves a
 
 ---
 
-## 🐳 Docker Quickstart
+## 🐳 Docker Quickstart (existing Hermes gateway)
 
 [![Open in GitHub Codespaces](https://img.shields.io/badge/GitHub%20Codespaces-Open-181717?logo=github)](https://github.com/codespaces/new?hide_repo_select=true&ref=main&repo=JPeetz/Hermes-Studio)
 
-The Docker setup runs both the **Hermes Agent gateway** and **Hermes Studio** together.
+The Docker setup runs **NEXABIL Studio only** and connects it to an already-running
+Hermes gateway. It does not build, start, or publish a second Hermes runtime.
 
 ### Prerequisites
 
 - **Docker**
 - **Docker Compose**
-- **Anthropic API Key** — [Get one here](https://console.anthropic.com/settings/keys) (required for the agent gateway)
+- An existing Hermes gateway reachable from the Docker network
+- Existing Docker networks for Hermes and Nginx Proxy Manager
 
 ### Step 1: Configure Environment
 
@@ -367,30 +369,35 @@ cd Hermes-Studio
 cp .env.example .env
 ```
 
-Edit `.env` and add your API key:
+Edit `.env` with the existing service and network names:
 
 ```env
-ANTHROPIC_API_KEY=your-key-here
+HERMES_API_URL=http://hermes:8642
+HERMES_DOCKER_NETWORK=hermes_default
+PROXY_DOCKER_NETWORK=nginx-proxy-manager_default
 ```
 
-> **Important:** The `hermes-agent` container requires `ANTHROPIC_API_KEY` to function. Without it, the gateway will fail to authenticate.
+The two networks are external and must already exist. Nginx Proxy Manager can
+reach the Studio at the Compose service name `nexabil-studio` on its network.
 
 ### Step 2: Start the Services
 
 ```bash
-docker compose up
+docker compose up -d --build
 ```
 
-This starts two services:
+This starts the Studio service:
 
-- **hermes-agent** — The AI agent gateway (port 8642)
-- **hermes-studio** — The web UI (port 3000)
+- **nexabil-studio** — The web UI (port 3000)
+
+An optional Redis service exists only under the `redis` profile and is not
+started by the command above.
 
 ### Step 3: Access the Workspace
 
 Open `http://localhost:3000` and complete the onboarding.
 
-> **Verify:** Check the Docker logs for `[gateway] Connected to Hermes` — this confirms the workspace successfully connected to the agent.
+> **Verify:** Check the Studio logs and open the configured Nginx Proxy Manager hostname. Hermes itself remains managed by the existing Home Server deployment.
 
 ---
 
@@ -687,44 +694,37 @@ Verify: `curl http://localhost:8642/health` should return `{"status": "ok"}`.
 
 The upstream hermes-agent supports basic chat via `hermes --gateway`, but older versions may not include extended endpoints (sessions, memory, skills, config). Hermes Studio will work in **portable mode** with basic chat. For full features, ensure you have the latest version: `cd hermes-agent && git pull && pip install -e .`
 
-### Docker: "Unauthorized" or "Connection refused" to hermes-agent
+### Docker: "Unauthorized" or "Connection refused" to the existing Hermes gateway
 
-If using Docker Compose and getting auth errors:
+If the Studio cannot connect to the existing gateway:
 
-1. **Check your API key is set:**
-
-   ```bash
-   cat .env | grep ANTHROPIC_API_KEY
-   # Should show: ANTHROPIC_API_KEY=sk-ant-...
-   ```
-
-2. **View the agent container logs:**
+1. **Check the configured URL and bearer token:**
 
    ```bash
-   docker compose logs hermes-agent
+   grep -E '^(HERMES_API_URL|HERMES_API_TOKEN)=' .env
    ```
 
-   Look for startup errors or missing API key warnings.
-
-3. **Verify the agent health endpoint:**
+2. **Verify the gateway health endpoint from the Home Server:**
 
    ```bash
    curl http://localhost:8642/health
    # Should return: {"status": "ok"}
    ```
 
-4. **Restart with fresh containers:**
+3. **Restart the Studio container:**
 
    ```bash
-   docker compose down
-   docker compose up --build
+   docker compose restart nexabil-studio
    ```
 
-5. **Check workspace logs for gateway status:**
+4. **Check Studio logs and confirm both external networks are attached:**
+
    ```bash
-   docker compose logs hermes-studio
+   docker compose logs nexabil-studio
+   docker inspect nexabil-studio
    ```
-   Look for: `[gateway] http://hermes-agent:8642 mode=...` — if it shows `mode=disconnected`, the agent isn't running correctly.
+
+   The Hermes gateway remains managed by the existing Home Server deployment.
 
 ### Docker: "hermes webapi command not found"
 

@@ -59,7 +59,7 @@ export function HelpScreen() {
     <div className="flex h-full flex-col overflow-y-auto" style={{ background: 'var(--theme-bg)' }}>
       <div className="mx-auto w-full max-w-4xl px-6 py-10">
         <h1 style={{ color: 'var(--theme-text)', fontSize: '2.25rem', fontWeight: 800, marginBottom: '0.5rem' }}>
-          Hermes Studio Help
+          NEXABIL Help
         </h1>
         <p style={{ color: 'var(--theme-muted)', fontSize: '1.1rem', marginBottom: '2.5rem' }}>
           A comprehensive guide to every feature in Hermes Studio. Use the table of contents below to jump to any section.

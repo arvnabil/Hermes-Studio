@@ -2,7 +2,11 @@
 
 <img width="1520" height="648" alt="Hermes Studio — open-source web UI and dashboard for Hermes Agent by NousResearch" src="https://github.com/user-attachments/assets/7eab7817-b21d-4595-9412-ac013761dcd5" />
 
-# Hermes Studio
+# NEXABIL
+
+## AI COMPANY OPERATING SYSTEM
+
+NEXABIL is the maintained fork of Hermes Studio by [arvnabil](https://github.com/arvnabil). It preserves the existing Hermes management layer and connects to an existing Hermes Agent gateway; it does not replace or reimplement Hermes.
 
 **The only Hermes web UI with a built-in cron job manager — schedule, monitor, and control autonomous agent tasks without touching a terminal.**
 
@@ -851,7 +855,7 @@ MIT — see [LICENSE](LICENSE) for details.
 
 ## 🙏 Acknowledgments
 
-Hermes Studio is built on [hermes-workspace](https://github.com/outsourc-e/hermes-workspace) by [@outsourc-e](https://github.com/outsourc-e), released under the MIT license.
+NEXABIL is a fork of [Hermes Studio](https://github.com/JPeetz/Hermes-Studio) by [@JPeetz](https://github.com/JPeetz), which is built on [hermes-workspace](https://github.com/outsourc-e/hermes-workspace) by [@outsourc-e](https://github.com/outsourc-e). Upstream attribution, copyright notices, the MIT license, and third-party notices are retained.
 
 ---
 

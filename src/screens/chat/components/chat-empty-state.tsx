@@ -70,7 +70,7 @@ export function ChatEmptyState({
           className="text-xl font-semibold tracking-tight"
           style={{ color: 'var(--theme-text)' }}
         >
-          Hermes Studio
+          NEXABIL
         </h2>
 
         {!compact && (

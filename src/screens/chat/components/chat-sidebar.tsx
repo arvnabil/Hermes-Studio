@@ -954,7 +954,7 @@ function ChatSidebarComponent({
                   className="text-sm font-semibold tracking-tight"
                   style={{ color: 'var(--theme-text)' }}
                 >
-                  Hermes Studio
+                  NEXABIL
                 </span>
               </Link>
             </motion.div>

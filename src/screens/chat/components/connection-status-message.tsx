@@ -25,7 +25,7 @@ function classifyConnectionError(
   if (!normalizedError && !status) {
     return {
       title: 'Not connected',
-      description: "Hermes Studio can't reach Hermes.",
+      description: "NEXABIL can't reach Hermes.",
       action: 'Check that Hermes is running, then try again.',
     }
   }

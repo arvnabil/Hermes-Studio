@@ -20,6 +20,10 @@ import {
   streamChat,
 } from '../../server/hermes-api'
 import {
+  ensureHermesSession,
+  shouldEnsureHermesSession,
+} from '../../server/hermes-session'
+import {
   appendLocalMessage,
   ensureLocalSession,
 } from '../../server/local-session-store'
@@ -502,6 +506,8 @@ export const Route = createFileRoute('/api/send-stream')({
                 const session = await createSession()
                 sessionKey = session.id
                 resolvedFriendlyId = session.id
+              } else if (shouldEnsureHermesSession(sessionKey)) {
+                await ensureHermesSession(sessionKey)
               }
 
               let startedSent = false

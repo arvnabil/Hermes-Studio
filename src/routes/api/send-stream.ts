@@ -23,6 +23,7 @@ import {
   ensureHermesSession,
   shouldEnsureHermesSession,
 } from '../../server/hermes-session'
+import { getToolResultPreview } from '../../server/tool-result'
 import {
   appendLocalMessage,
   ensureLocalSession,
@@ -255,17 +256,6 @@ function getToolArgs(data: Record<string, unknown>): unknown {
   return parseJsonIfPossible(
     toolCall?.arguments ?? toolFunction?.arguments ?? data.args,
   )
-}
-
-function getToolResultPreview(data: Record<string, unknown>): string {
-  const raw = data.result_preview ?? data.result ?? data.output ?? data.message
-  if (typeof raw === 'string') return raw
-  if (raw === undefined || raw === null) return ''
-  try {
-    return JSON.stringify(raw, null, 2)
-  } catch {
-    return String(raw)
-  }
 }
 
 export const Route = createFileRoute('/api/send-stream')({
@@ -702,7 +692,7 @@ export const Route = createFileRoute('/api/send-stream')({
                         name: toolName,
                         toolCallId: getToolCallId(data, runId, toolName),
                         args: getToolArgs(data),
-                        result: resultPreview.slice(0, 4000),
+                        result: String(resultPreview).slice(0, 4000),
                         sessionKey: sessionKeyFromEvent,
                         runId,
                       }

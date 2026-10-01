@@ -20,6 +20,9 @@ afterEach(() => {
 
 describe('gateway capability detection', () => {
   it('maps current Hermes /v1/capabilities metadata', async () => {
+    const upgradeWarning = vi
+      .spyOn(console, 'warn')
+      .mockImplementation(() => undefined)
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const path = new URL(String(input)).pathname
       if (path === '/health') return response({ status: 'ok' })
@@ -51,6 +54,11 @@ describe('gateway capability detection', () => {
     expect(capabilities.memory).toBe(false)
     expect(capabilities.config).toBe(false)
     expect(capabilities.jobs).toBe(false)
+    expect(
+      upgradeWarning.mock.calls.some(([message]) =>
+        String(message).includes('Update Hermes'),
+      ),
+    ).toBe(false)
     expect(
       fetchMock.mock.calls.some(([input]) =>
         String(input).endsWith('/api/sessions/__probe__/chat/stream'),

@@ -185,7 +185,13 @@ async function probeChatCompletions(): Promise<boolean> {
 // APIs that are optional and do not warrant an upgrade warning when absent.
 const OPTIONAL_APIS = new Set(['jobs', 'chatCompletions', 'streaming'])
 
-function logCapabilities(next: GatewayCapabilities): void {
+type CapabilityDetectionSource = 'metadata' | 'legacy'
+
+function logCapabilities(
+  next: GatewayCapabilities,
+  source: CapabilityDetectionSource,
+  metadataRequired?: Set<string>,
+): void {
   const core: Array<string> = []
   const enhanced: Array<string> = []
   const missing: Array<string> = []
@@ -220,7 +226,10 @@ function logCapabilities(next: GatewayCapabilities): void {
   console.log(summary)
 
   // Only warn about critical missing APIs (not optional ones)
-  const criticalMissing = missing.filter((key) => !OPTIONAL_APIS.has(key))
+  const criticalMissing = missing.filter((key) => {
+    if (OPTIONAL_APIS.has(key)) return false
+    return source === 'legacy' || metadataRequired?.has(key) === true
+  })
   if (criticalMissing.length > 0 && next.health) {
     console.warn(
       `[gateway] Missing Hermes APIs detected. ${HERMES_UPGRADE_INSTRUCTIONS}`,
@@ -322,7 +331,29 @@ export async function probeGateway(options?: {
       jobs,
     }
     lastProbeAt = Date.now()
-    logCapabilities(capabilities)
+    const metadataRequired = capabilityFeatures
+      ? new Set(
+          Object.entries(capabilityFeatures)
+            .filter(([, enabled]) => enabled === true)
+            .map(([key]) =>
+              ({
+                session_resources: 'sessions',
+                session_chat: 'enhancedChat',
+                session_chat_streaming: 'enhancedChat',
+                skills_api: 'skills',
+                memory_write_api: 'memory',
+                admin_config_rw: 'config',
+                jobs_admin: 'jobs',
+              })[key],
+            )
+            .filter((key): key is string => Boolean(key)),
+        )
+      : undefined
+    logCapabilities(
+      capabilities,
+      capabilityFeatures ? 'metadata' : 'legacy',
+      metadataRequired,
+    )
     return capabilities
   })()
 

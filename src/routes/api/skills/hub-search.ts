@@ -124,7 +124,7 @@ async function searchSkillsmp(
 
 async function fetchInstalledIds(): Promise<Set<string>> {
   try {
-    const res = await fetch(`${HERMES_API}/api/skills`, {
+    const res = await fetch(`${HERMES_API}/v1/skills`, {
       headers: hermesAuthHeaders(),
       signal: AbortSignal.timeout(5_000),
     })

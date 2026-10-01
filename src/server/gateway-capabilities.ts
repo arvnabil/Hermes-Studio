@@ -48,6 +48,16 @@ export type ConnectionStatus =
   | 'partial'
   | 'disconnected'
 
+type CapabilityFeatures = Partial<{
+  session_resources: boolean
+  session_chat: boolean
+  session_chat_streaming: boolean
+  skills_api: boolean
+  memory_write_api: boolean
+  admin_config_rw: boolean
+  jobs_admin: boolean
+}>
+
 // ── State ─────────────────────────────────────────────────────────
 
 let capabilities: GatewayCapabilities = {
@@ -77,17 +87,70 @@ function authHeaders(): Record<string, string> {
 
 // ── Probing ───────────────────────────────────────────────────────
 
-async function probe(path: string): Promise<boolean> {
+async function probe(
+  path: string,
+  init?: RequestInit,
+): Promise<boolean> {
   try {
     const res = await fetch(`${HERMES_API}${path}`, {
       headers: authHeaders(),
       signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
+      ...init,
     })
     // 404 = endpoint doesn't exist.
     // 403 = likely a catch-all rejection (e.g. Codex endpoint rejects unknown paths).
     // Only 2xx, 400, 405, 422 reliably indicate the endpoint exists.
     if (res.status === 404 || res.status === 403) return false
     return true
+  } catch {
+    return false
+  }
+}
+
+async function fetchCapabilityFeatures(): Promise<CapabilityFeatures | null> {
+  try {
+    const res = await fetch(`${HERMES_API}/v1/capabilities`, {
+      headers: authHeaders(),
+      signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
+    })
+    if (!res.ok) return null
+    const payload = (await res.json()) as { features?: unknown }
+    if (!payload.features || typeof payload.features !== 'object') return null
+    return payload.features as CapabilityFeatures
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Legacy fallback for Hermes versions without /v1/capabilities.
+ * Discover a real session first; never use a made-up session ID to decide
+ * whether the session chat stream route exists.
+ */
+async function probeLegacySessionChat(): Promise<boolean> {
+  try {
+    const res = await fetch(`${HERMES_API}/api/sessions?limit=1&offset=0`, {
+      headers: authHeaders(),
+      signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
+    })
+    if (!res.ok) return false
+    const payload = (await res.json()) as unknown
+    const items = Array.isArray(payload)
+      ? payload
+      : payload && typeof payload === 'object' && 'items' in payload
+        ? (payload as { items?: unknown }).items
+        : null
+    const first = Array.isArray(items) ? items[0] : null
+    const sessionId =
+      first && typeof first === 'object' && 'id' in first
+        ? (first as { id?: unknown }).id
+        : null
+    if (typeof sessionId !== 'string' || !sessionId) return false
+
+    return probe(
+      `/api/sessions/${encodeURIComponent(sessionId)}/chat/stream`,
+      { method: 'GET' },
+    )
   } catch {
     return false
   }
@@ -203,22 +266,43 @@ export async function probeGateway(options?: {
       chatCompletions,
       models,
       sessions,
-      enhancedChat,
-      skills,
-      memory,
-      config,
-      jobs,
+      capabilityFeatures,
     ] = await Promise.all([
       probe('/health'),
       probeChatCompletions(),
       probe('/v1/models'),
       probe('/api/sessions'),
-      probe('/api/sessions/__probe__/chat/stream'),
-      probe('/api/skills'),
-      probe('/api/memory'),
-      probe('/api/config'),
-      probe('/api/jobs'),
+      fetchCapabilityFeatures(),
     ])
+
+    const enhancedFallback = capabilityFeatures
+      ? null
+      : await Promise.all([
+          probeLegacySessionChat(),
+          probe('/api/skills'),
+          probe('/api/memory'),
+          probe('/api/config'),
+          probe('/api/jobs'),
+        ])
+
+    const enhancedChat = capabilityFeatures
+      ? Boolean(
+          capabilityFeatures.session_chat &&
+            capabilityFeatures.session_chat_streaming,
+        )
+      : (enhancedFallback?.[0] ?? false)
+    const skills = capabilityFeatures
+      ? Boolean(capabilityFeatures.skills_api)
+      : (enhancedFallback?.[1] ?? false)
+    const memory = capabilityFeatures
+      ? Boolean(capabilityFeatures.memory_write_api)
+      : (enhancedFallback?.[2] ?? false)
+    const config = capabilityFeatures
+      ? Boolean(capabilityFeatures.admin_config_rw)
+      : (enhancedFallback?.[3] ?? false)
+    const jobs = capabilityFeatures
+      ? Boolean(capabilityFeatures.jobs_admin)
+      : (enhancedFallback?.[4] ?? false)
 
     capabilities = {
       // Core
@@ -228,7 +312,9 @@ export async function probeGateway(options?: {
       streaming: chatCompletions, // If chat completions exists, streaming is supported
       probed: true,
       // Enhanced
-      sessions,
+      sessions: capabilityFeatures
+        ? Boolean(capabilityFeatures.session_resources)
+        : sessions,
       enhancedChat,
       skills,
       memory,

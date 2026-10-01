@@ -391,15 +391,15 @@ export async function getMemory(): Promise<unknown> {
 // ── Skills ───────────────────────────────────────────────────────
 
 export async function listSkills(): Promise<unknown> {
-  return hermesGet('/api/skills')
+  return hermesGet('/v1/skills')
 }
 
 export async function getSkill(name: string): Promise<unknown> {
-  return hermesGet(`/api/skills/${encodeURIComponent(name)}`)
+  return hermesGet(`/v1/skills/${encodeURIComponent(name)}`)
 }
 
 export async function getSkillCategories(): Promise<unknown> {
-  return hermesGet('/api/skills/categories')
+  return hermesGet('/v1/skills')
 }
 
 // ── Config ───────────────────────────────────────────────────────

@@ -130,7 +130,7 @@ function writeLocalPrefs(prefs: StudioPrefs): void {
 
 // ── Local skills scanner ────────────────────────────────────────────────────
 // Reads skills installed at ~/.hermes/skills/{category}/{skill-name}/SKILL.md
-// Used when the Hermes gateway doesn't expose /api/skills.
+// Used when the Hermes gateway doesn't expose /v1/skills.
 
 const LOCAL_SKILLS_DIR = path.join(os.homedir(), '.hermes', 'skills')
 
@@ -332,7 +332,7 @@ function normalizeSkill(value: unknown): SkillSummary | null {
 }
 
 async function fetchHermesSkills(): Promise<Array<SkillSummary>> {
-  const response = await fetch(`${HERMES_API_URL}/api/skills`)
+  const response = await fetch(`${HERMES_API_URL}/v1/skills`)
   if (!response.ok) {
     const body = await response.text().catch(() => '')
     throw new Error(body || `Hermes skills request failed (${response.status})`)
@@ -419,7 +419,7 @@ export const Route = createFileRoute('/api/skills')({
             Math.max(1, Number(url.searchParams.get('limit') || '30')),
           )
 
-          // Use local filesystem scan when gateway doesn't expose /api/skills
+          // Use local filesystem scan when gateway doesn't expose /v1/skills
           const sourceItems = getCapabilities().skills
             ? await fetchHermesSkills()
             : readLocalSkills()
